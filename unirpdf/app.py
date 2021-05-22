@@ -2,9 +2,9 @@ from tkinter import *
 import os
 from main import unidor
 
-origen = r"C:\\origen\\"
-destino = r"C:\\destino\\"
-temporal = r"C:\\temporal\\"
+origen = r"D:\\Documentos\\Programas\\testeos\\UPDF\origen\\"
+destino = r"D:\\Documentos\\Programas\\testeos\\UPDF\\destino\\"
+temporal = r"D:\\Documentos\\Programas\\testeos\\UPDF\temporal\\"
 
 
 unPdf = unidor(origen,destino,temporal)
@@ -41,7 +41,8 @@ listaDestino.pack()
 
 botonIniciar = Button(frameUno,text= 'Unir', command = unPdf.unirTodos)
 botonIniciar.pack()
-
+botonMover = Button(frameUno,text= 'Mover', command = unPdf.moverCarpeta)
+botonMover.pack()
 def completaListbox (*x):
 
     listaOrigen.delete(0,END)
@@ -55,8 +56,6 @@ def completaListbox (*x):
 
     
 listaCarpetaOrigen.bind("<<ListboxSelect>>",completaListbox)
-
-
 
 
 raiz.mainloop()

@@ -7,6 +7,7 @@ import img2pdf
 import os, shutil
 import comtypes.client
 import docx
+from win32com import client
 
 class unidor:
     
@@ -15,13 +16,23 @@ class unidor:
         self.path_destino = path_destino
         self.path_temporal = path_temporal
         self.subOrigen = [archivo.name for archivo in os.scandir(self.path_origen) if archivo.is_dir()]
-    
+        self.extensiones_validas = ['.doc','.docx','.png','.tif','.jpg','.pdf','jpeg','tiff']
+
+    def controlExtensiones(self):
+        print("Inicio: controlExtensiones")
+        secuencia_nombre = 0
+        for carpetas in self.subOrigen:
+            for archivo in os.listdir(self.path_origen + carpetas + '\\'):
+                if os.path.splitext(archivo)[1] not in self.extensiones_validas:
+                    shutil.move(self.path_origen + carpetas + '\\' + archivo, self.path_destino + '\\'+ carpetas + str(secuencia_nombre) + os.path.splitext(archivo)[1] )
+                    secuencia_nombre += 1
+                    
     def pngToJpg(self):  #listo
-        print("pngToJpg")
+        print("Inicio: pngToJpg")
         #recorro cada un de las carpetas dentro de origen 
         for carpetas in self.subOrigen:
             #creo una lista de los archvos png y tiff        
-            pngs =  [archivo for archivo in os.listdir(self.path_origen + carpetas + '\\') if archivo.endswith('.png') or archivo.endswith('.tif')]
+            pngs =  [archivo for archivo in os.listdir(self.path_origen + carpetas + '\\') if archivo.endswith('.png') or archivo.endswith('.tif') or  archivo.endswith('.tiff')]
             #recorro cada uno de los .png y los transformo en .jpg
             if len(pngs) > 0:
                 #recorro la lista con los png y los transformo en jpg
@@ -29,9 +40,9 @@ class unidor:
                     imagen = Image.open(self.path_origen + carpetas + '\\' + png_y_tiff)
                     rgb_im = imagen.convert('RGB')
                     rgb_im.save( self.path_origen + carpetas + '\\' + png_y_tiff + '.jpg', quality=95)
-               
+ 
     def docxToPdf (self):
-        print("docxToPdf")
+        print("Inicio: docxToPdf")
         #recorro cada un de las carpetas dentro de origen
         for carpetas in self.subOrigen:
             #creo una lista de los archvos docx        
@@ -46,8 +57,23 @@ class unidor:
                     doc.SaveAs(out_file, FileFormat=17)                
                     doc.Close()
 
+    def redimensionarJpg (self, path_jpg):
+        print("Inicio: redimensionarJPG: " + path_jpg )
+        sizefile = os.path.getsize(path_jpg)
+        
+        imagen = Image.open(path_jpg)
+        
+        while sizefile>250000:
+            imagen = imagen.resize((int(imagen.size[0]*0.90), int(imagen.size[1]*0.90)), Image.ANTIALIAS)
+            quality_val = 85
+            imagen.save(path_jpg, 'jpeg', quality=quality_val)
+            imagen = Image.open(path_jpg)
+            sizefile = os.path.getsize(path_jpg)
+
+
+        
     def jpgToPdf (self):
-        print("jpgToPdf")
+        print("Inicio: jpgToPdf")
         #recorro cada un de las carpetas dentro de origen
         for carpetas in self.subOrigen:
             #creo una lista con los todos los archivos jpeg y jpeg
@@ -55,12 +81,17 @@ class unidor:
             
             #controlo que la lista no esté vacía
             if len(imagenes) > 0:
+                print(imagenes)
+                for imagen_jpg in imagenes:
+                    if os.path.getsize(imagen_jpg) >500000:
+                        self.redimensionarJpg(imagen_jpg)
+
                 #Uno todos los .jpg los uno en un solo .pdf
                 with open(self.path_origen + carpetas + '\\' + 'ZfromJpg.pdf', "wb") as documento:
                     documento.write(img2pdf.convert(imagenes))
                   
     def unirPdf (self):
-        print("unirPdf")
+        print("Inicio: unirPdf")
         #recorro cada un de las carpetas dentro de origen
         for carpetas in self.subOrigen:
             #creo una lista por cada carpeta con solo los pdf
@@ -90,6 +121,7 @@ class unidor:
             
 
     def unirTodos(self):
+        self.controlExtensiones()
         self.pngToJpg()
         self.docxToPdf()
         self.jpgToPdf()

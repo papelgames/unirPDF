@@ -2,3 +2,5 @@ entorno.cmd
 __pycache__
 borra.py 
 doctopdf.py 
+build*
+app2.spec

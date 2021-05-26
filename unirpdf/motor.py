@@ -1,8 +1,7 @@
 from PyPDF2 import PdfFileMerger
-from PIL import Image
+from PIL import Image, ImageSequence
 from datetime import datetime
 from pikepdf import _cpphelpers 
-
 import img2pdf
 import os, shutil
 import comtypes.client
@@ -11,7 +10,6 @@ from win32com import client
 import random
 
 class unidor:
-    
     def __init__ (self,path_origen,path_destino, path_temporal):
         self.path_origen = path_origen
         self.path_destino = path_destino
@@ -20,7 +18,9 @@ class unidor:
         self.extensiones_validas = ['.doc','.docx','.png','.tif','.jpg','.pdf','.jpeg','.tiff']
         self.secuencia = random.randint(1,99)
 
-
+    def actualizoSubOrigen(self):
+        self.subOrigen = [archivo.name for archivo in os.scandir(self.path_origen) if archivo.is_dir()]
+    
     def controlExtensiones(self):
         print("Inicio: controlExtensiones")
         secuencia_nombre = 0
@@ -37,24 +37,56 @@ class unidor:
         #recorro cada un de las carpetas dentro de origen 
         for carpetas in self.subOrigen:
             #creo una lista de los archvos png y tiff        
-            pngs =  [archivo for archivo in os.listdir(self.path_origen + carpetas + '\\') if archivo.endswith('.png') or archivo.endswith('.tif') or  archivo.endswith('.tiff')]
+            pngs =  [archivo for archivo in os.listdir(self.path_origen + carpetas + '\\') if archivo.endswith('.png')]
             #recorro cada uno de los .png y los transformo en .jpg
             if len(pngs) > 0:
                 #recorro la lista con los png y los transformo en jpg
-                for png_y_tiff in pngs:
-                    imagen = Image.open(self.path_origen + carpetas + '\\' + png_y_tiff)
+                for png in pngs:
+                    imagen = Image.open(self.path_origen + carpetas + '\\' + png)
                     rgb_im = imagen.convert('RGB')
-                    rgb_im.save( self.path_origen + carpetas + '\\' + png_y_tiff + '.jpg', quality=95)
-        pngs =  [archivo for archivo in os.listdir(self.path_origen + '\\') if archivo.endswith('.png') or archivo.endswith('.tif') or  archivo.endswith('.tiff')]
-            #recorro cada uno de los .png y los transformo en .jpg
+                    rgb_im.save( self.path_origen + carpetas + '\\' + png + '.jpg', quality=95)
+        pngs =  [archivo for archivo in os.listdir(self.path_origen + '\\') if archivo.endswith('.png') ]
+        #recorro cada uno de los .png y los transformo en .jpg
         if len(pngs) > 0:
             #recorro la lista con los png y los transformo en jpg
-            for png_y_tiff in pngs:
-                imagen = Image.open(self.path_origen  + '\\' + png_y_tiff)
+            for png in pngs:
+                imagen = Image.open(self.path_origen  + '\\' + png)
                 rgb_im = imagen.convert('RGB')
-                rgb_im.save( self.path_origen  + '\\' + png_y_tiff + '.jpg', quality=95)
+                rgb_im.save( self.path_origen  + '\\' + png + '.jpg', quality=95)
     
-    
+    def tiffToJpg (self):
+        print("Inicio: tiffToJpg")
+        #recorro cada un de las carpetas dentro de origen 
+        for carpetas in self.subOrigen:
+            #creo una lista de los archvos tiff        
+            tiffs =  [archivo for archivo in os.listdir(self.path_origen + carpetas + '\\') if archivo.endswith('.tif') or  archivo.endswith('.tiff')]
+            #controlo que haya tiff
+            if len(tiffs) > 0:
+                #recorro la lista con los .tiff tambien si tienen mas de una pagina, y los transformo en jpg
+                for tiff in tiffs:
+                    imagen = Image.open(self.path_origen + carpetas + '\\' + tiff)
+                    imagen_multiple = ImageSequence.Iterator(imagen)
+                    for imagen_unica in imagen_multiple:
+                        print ('entro subcarpeta')
+                        rgb_im = imagen_unica.convert('RGB')
+                        rgb_im.save( self.path_origen + carpetas + '\\' + str(self.secuencia) + tiff + '.jpg', quality=95)
+                        self.secuencia += 1
+        tiffs =  [archivo for archivo in os.listdir(self.path_origen + '\\') if archivo.endswith('.tif') or  archivo.endswith('.tiff')]
+            #controlo que haya tiff
+        if len(tiffs) > 0:
+            #recorro la lista con los .tiff tambien si tienen mas de una pagina, y los transformo en jpg
+            for tiff in tiffs:
+                imagen = Image.open(self.path_origen  + '\\' + tiff)
+                imagen_multiple = ImageSequence.Iterator(imagen)
+                nombre_archivo = os.path.basename(tiff)
+                carpeta = str(self.secuencia) + os.path.splitext(nombre_archivo)[0]
+                os.mkdir(self.path_origen + carpeta)
+                for imagen_unica in imagen_multiple:
+                    print ('entro origen')
+                    rgb_im = imagen_unica.convert('RGB')
+                    rgb_im.save( self.path_origen  + carpeta + '\\' + str(self.secuencia) + tiff + '.jpg', quality=95)
+                    self.secuencia += 1
+                    
     def docxToPdf (self):
         print("Inicio: docxToPdf")
         #recorro cada un de las carpetas dentro de origen
@@ -80,8 +112,7 @@ class unidor:
                 doc.SaveAs(out_file, FileFormat=17)                
                 doc.Close()
                 self.secuencia +=1
-                       
-
+              
     def redimensionarJpg (self, path_jpg):
         print("Inicio: redimensionarJPG: " + path_jpg )
         #capturo el tamaño del archivo
@@ -95,7 +126,7 @@ class unidor:
             imagen.save(path_jpg, 'jpeg', quality=quality_val)
             imagen = Image.open(path_jpg)
             sizefile = os.path.getsize(path_jpg)
-        
+
     def jpgToPdf (self):
         print("Inicio: jpgToPdf")
         #recorro cada un de las carpetas dentro de origen
@@ -168,7 +199,8 @@ class unidor:
     def unirTodos(self):
         self.controlExtensiones()
         self.pngToJpg()
+        self.tiffToJpg()
         self.docxToPdf()
+        self.actualizoSubOrigen()
         self.jpgToPdf()
         self.unirPdf()
-        

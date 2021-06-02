@@ -15,7 +15,7 @@ class unidor:
         self.path_destino = path_destino
         self.path_temporal = path_temporal
         self.subOrigen = [archivo.name for archivo in os.scandir(self.path_origen) if archivo.is_dir()]
-        self.extensiones_validas = ['.doc','.docx','.png','.tif','.jpg','.pdf','.jpeg','.tiff']
+        self.extensiones_validas = ['.doc','.docx','.png','.tif','.jpg','.pdf','.jpeg','.tiff','.DOC','.DOCX','.PNG','.TIF','.JPG','.PDF','.JPEG','.TIFF']
         self.secuencia = random.randint(1,99)
 
     def actualizoSubOrigen(self):
@@ -167,11 +167,19 @@ class unidor:
             #ordeno la lista
             pdfs_ordenados = sorted(pdfs)
             #hago el merge con el objeto fusionador
+            con_errores = []
             if len(pdfs) > 0:
                 for pdf in pdfs_ordenados: 
-                    fusionador.append(open(self.path_origen + carpetas + '\\' + pdf,'rb'))
+                    try:
+                        fusionador.append(open(self.path_origen + carpetas + '\\' + pdf,'rb'))
+                    except:
+                        con_errores.append(pdf)
+                        
                 with open(self.path_destino + carpetas +'.pdf','wb') as salida: 
                     fusionador.write(salida)
+                for con_error in con_errores:
+                    shutil.copy(self.path_origen + carpetas  + '\\' + con_error, self.path_destino + carpetas + 'CON_ERROR' + str(self.secuencia) +'.pdf' )
+                    self.secuencia +=1
         pdfs = [archivo for archivo in os.listdir(self.path_origen + '\\') if archivo.endswith(".pdf")]
         if len(pdfs) > 0:
             for pdf in pdfs:

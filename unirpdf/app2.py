@@ -3,6 +3,7 @@ from motor import unidor
 import sys
 
 #D:\\Documentos\\Programas\\testeos\\UPDF\\
+#python app2.py up D:\\Documentos\\Programas\\testeos\\UPDF\\
 origen = sys.argv[2] + "\\origen\\"
 destino = sys.argv[2] + "\\destino\\"
 temporal = sys.argv[2] + "\\temporal\\"

@@ -4,3 +4,4 @@ img2pdf
 comtypes
 python-docx
 pywin32
+fpdf

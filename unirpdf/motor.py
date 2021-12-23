@@ -1,13 +1,16 @@
 from PyPDF2 import PdfFileMerger
-from PIL import Image, ImageSequence
+from PIL import Image, ImageSequence, ImageFile
 from datetime import datetime
-from pikepdf import _cpphelpers 
+from pikepdf import _cpphelpers
+from fpdf import FPDF
+ 
 import img2pdf
 import os, shutil
 import comtypes.client
 import docx
 from win32com import client
 import random
+ImageFile.LOAD_TRUNCATED_IMAGES = True
 
 class unidor:
     def __init__ (self,path_origen,path_destino, path_temporal):
@@ -15,7 +18,7 @@ class unidor:
         self.path_destino = path_destino
         self.path_temporal = path_temporal
         self.subOrigen = [archivo.name for archivo in os.scandir(self.path_origen) if archivo.is_dir()]
-        self.extensiones_validas = ['.doc','.docx','.png','.tif','.jpg','.pdf','.jpeg','.tiff','.DOC','.DOCX','.PNG','.TIF','.JPG','.PDF','.JPEG','.TIFF']
+        self.extensiones_validas = ['.txt','.TXT','.doc','.docx','.png','.tif','.jpg','.pdf','.jpeg','.tiff','.DOC','.DOCX','.PNG','.TIF','.JPG','.PDF','.JPEG','.TIFF']
         self.secuencia = random.randint(1,99)
 
     def actualizoSubOrigen(self):
@@ -36,8 +39,8 @@ class unidor:
         print("Inicio: pngToJpg")
         #recorro cada un de las carpetas dentro de origen 
         for carpetas in self.subOrigen:
-            #creo una lista de los archvos png y tiff        
-            pngs =  [archivo for archivo in os.listdir(self.path_origen + carpetas + '\\') if archivo.endswith('.png')]
+            #creo una lista de los archvos png         
+            pngs =  [archivo for archivo in os.listdir(self.path_origen + carpetas + '\\') if archivo.endswith('.png') or archivo.endswith('.PNG')]
             #recorro cada uno de los .png y los transformo en .jpg
             if len(pngs) > 0:
                 #recorro la lista con los png y los transformo en jpg
@@ -45,7 +48,7 @@ class unidor:
                     imagen = Image.open(self.path_origen + carpetas + '\\' + png)
                     rgb_im = imagen.convert('RGB')
                     rgb_im.save( self.path_origen + carpetas + '\\' + png + '.jpg', quality=95)
-        pngs =  [archivo for archivo in os.listdir(self.path_origen + '\\') if archivo.endswith('.png') ]
+        pngs =  [archivo for archivo in os.listdir(self.path_origen + '\\') if archivo.endswith('.png') or archivo.endswith('.PNG')]
         #recorro cada uno de los .png y los transformo en .jpg
         if len(pngs) > 0:
             #recorro la lista con los png y los transformo en jpg
@@ -59,7 +62,7 @@ class unidor:
         #recorro cada un de las carpetas dentro de origen 
         for carpetas in self.subOrigen:
             #creo una lista de los archvos tiff        
-            tiffs =  [archivo for archivo in os.listdir(self.path_origen + carpetas + '\\') if archivo.endswith('.tif') or  archivo.endswith('.tiff')]
+            tiffs =  [archivo for archivo in os.listdir(self.path_origen + carpetas + '\\') if archivo.endswith('.tif') or  archivo.endswith('.tiff') or archivo.endswith('.TIF') or  archivo.endswith('.TIFF')]
             #controlo que haya tiff
             if len(tiffs) > 0:
                 #recorro la lista con los .tiff tambien si tienen mas de una pagina, y los transformo en jpg
@@ -71,7 +74,7 @@ class unidor:
                         rgb_im = imagen_unica.convert('RGB')
                         rgb_im.save( self.path_origen + carpetas + '\\' + str(self.secuencia) + tiff + '.jpg', quality=95)
                         self.secuencia += 1
-        tiffs =  [archivo for archivo in os.listdir(self.path_origen + '\\') if archivo.endswith('.tif') or  archivo.endswith('.tiff')]
+        tiffs =  [archivo for archivo in os.listdir(self.path_origen + '\\') if archivo.endswith('.tif') or  archivo.endswith('.tiff') or archivo.endswith('.TIF') or  archivo.endswith('.TIFF') ]
             #controlo que haya tiff
         if len(tiffs) > 0:
             #recorro la lista con los .tiff tambien si tienen mas de una pagina, y los transformo en jpg
@@ -82,17 +85,50 @@ class unidor:
                 carpeta = str(self.secuencia) + os.path.splitext(nombre_archivo)[0]
                 os.mkdir(self.path_origen + carpeta)
                 for imagen_unica in imagen_multiple:
-                    print ('entro origen')
                     rgb_im = imagen_unica.convert('RGB')
                     rgb_im.save( self.path_origen  + carpeta + '\\' + str(self.secuencia) + tiff + '.jpg', quality=95)
                     self.secuencia += 1
                     
+    
+    def txtToPdf (self):
+        print("Inicio: txtToPdf")
+        #recorro cada un de las carpetas dentro de origen
+        for carpetas in self.subOrigen:
+            #creo una lista de los archvos txt
+            print (carpetas)
+            #pngs =  [archivo for archivo in os.listdir(self.path_origen + carpetas + '\\') if archivo.endswith('.png') or archivo.endswith('.PNG')]
+            txts=sorted([self.path_origen + carpetas + '\\'+ archivo for archivo in os.listdir(self.path_origen + carpetas + '\\') if archivo.endswith(".txt") or archivo.endswith(".TXT")])
+            #controlo que la lista no este vacia
+            if len(txts)>0:
+                for txt in txts:
+                    #ABRO ARCHIVO ORIGEN
+                    contenido = open(txt,"r")
+
+                    #OBJETO PDF
+                    pdf = FPDF()
+                    pdf.add_page()
+                    pdf.set_font("Arial", size = 12)
+                    pdf.set_auto_page_break("auto", margin=0)
+                    line=1
+
+                    #LEO EL TXT
+                    for linea in contenido:
+                        if linea[-1]==("\n"):
+                            linea=linea[:-1]
+                            line+=1
+                        pdf.cell(200,10,txt=linea, ln=line, align="L")
+                    #CREO EL PDF
+                    pdf.output(self.path_origen + carpetas + '\\' + "XfromTXT" + str(self.secuencia) + ".pdf")
+                    self.secuencia +=1
+                    contenido.close
+                    
+    
     def docxToPdf (self):
         print("Inicio: docxToPdf")
         #recorro cada un de las carpetas dentro de origen
         for carpetas in self.subOrigen:
             #creo una lista de los archvos docx        
-            docxs = [archivo for archivo in os.listdir(self.path_origen + carpetas + '\\') if archivo.endswith('.docx') or archivo.endswith('.doc')]
+            docxs = [archivo for archivo in os.listdir(self.path_origen + carpetas + '\\') if archivo.endswith('.docx') or archivo.endswith('.doc') or archivo.endswith('.DOCX') or archivo.endswith('.DOC')]
             #controlo que la lista no esté vacía
             if len(docxs) > 0:
                 #recorro cada uno de los .docx y .doc y los transformo en .pdf
@@ -102,7 +138,7 @@ class unidor:
                     doc = word.Documents.Open(self.path_origen + carpetas + '\\' + archivo_docx)
                     doc.SaveAs(out_file, FileFormat=17)                
                     doc.Close()
-        docxs = [archivo for archivo in os.listdir(self.path_origen + '\\') if archivo.endswith('.docx') or archivo.endswith('.doc')]
+        docxs = [archivo for archivo in os.listdir(self.path_origen + '\\') if archivo.endswith('.docx') or archivo.endswith('.doc') or archivo.endswith('.DOCX') or archivo.endswith('.DOC')]
         #recorro la lista imagenes de la carpeta origen. 
         if len(docxs) > 0:
             for archivo_docx in docxs:
@@ -132,7 +168,7 @@ class unidor:
         #recorro cada un de las carpetas dentro de origen
         for carpetas in self.subOrigen:
             #creo una lista con los todos los archivos jpeg y jpeg
-            imagenes = sorted([self.path_origen + carpetas + '\\' + archivo for archivo in os.listdir(self.path_origen + carpetas + '\\') if archivo.endswith(".jpg") or archivo.endswith(".jpeg")])
+            imagenes = sorted([self.path_origen + carpetas + '\\' + archivo for archivo in os.listdir(self.path_origen + carpetas + '\\') if archivo.endswith(".jpg") or archivo.endswith(".jpeg") or archivo.endswith(".JPG") or archivo.endswith(".JPEG")])
             #controlo que la lista no esté vacía
             if len(imagenes) > 0:
                 #controlo que las archivos .jpg no sean superiores a 250kb
@@ -143,7 +179,7 @@ class unidor:
                 with open(self.path_origen + carpetas + '\\' + 'ZfromJpg.pdf', "wb") as documento:
                     documento.write(img2pdf.convert(imagenes))
         #creo un lista con los archivos .jpg de la carpeta origen. 
-        imagenes = sorted([self.path_origen + '\\' + archivo for archivo in os.listdir(self.path_origen + '\\') if archivo.endswith(".jpg") or archivo.endswith(".jpeg")])
+        imagenes = sorted([self.path_origen + '\\' + archivo for archivo in os.listdir(self.path_origen + '\\') if archivo.endswith(".jpg") or archivo.endswith(".jpeg") or archivo.endswith(".JPG") or archivo.endswith(".JPEG")])
         #recorro la lista imagenes de la carpeta origen. 
         if len(imagenes) > 0:
             for imagen in imagenes:
@@ -161,9 +197,10 @@ class unidor:
         #recorro cada un de las carpetas dentro de origen
         for carpetas in self.subOrigen:
             #creo una lista por cada carpeta con solo los pdf
-            pdfs = [archivo for archivo in os.listdir(self.path_origen + carpetas + '\\') if archivo.endswith(".pdf")]
+            pdfs = [archivo for archivo in os.listdir(self.path_origen + carpetas + '\\') if archivo.endswith(".pdf") or archivo.endswith(".PDF") ]
+            print (pdfs)
             #creo un objeto para fusionar
-            fusionador = PdfFileMerger()
+            fusionador = PdfFileMerger(strict=False)
             #ordeno la lista
             pdfs_ordenados = sorted(pdfs)
             #hago el merge con el objeto fusionador
@@ -174,6 +211,7 @@ class unidor:
                         fusionador.append(open(self.path_origen + carpetas + '\\' + pdf,'rb'))
                     except:
                         con_errores.append(pdf)
+                        
                         
                 with open(self.path_destino + carpetas +'.pdf','wb') as salida: 
                     fusionador.write(salida)
@@ -207,6 +245,7 @@ class unidor:
     def unirTodos(self):
         self.controlExtensiones()
         self.pngToJpg()
+        self.txtToPdf()
         self.tiffToJpg()
         self.docxToPdf()
         self.actualizoSubOrigen()

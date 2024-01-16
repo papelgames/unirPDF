@@ -5,3 +5,4 @@ doctopdf.py
 build*
 app2.spec
 automateMDI.cmd
+.\env

@@ -5,3 +5,4 @@ comtypes
 python-docx
 pywin32
 fpdf
+pillow_heif
